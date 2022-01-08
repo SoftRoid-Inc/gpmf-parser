@@ -90,7 +90,7 @@ int main(int argc, char *argv[])
   // prepare for output
   char outfilepath[1024] = {'\0'};
   strcat(outfilepath, filedir);
-  strcat(outfilepath, "gpmf_out.csv");
+  strcat(outfilepath, "csv/gpmf_out.csv");
   FILE *fp = fopen(&outfilepath, "w");
 
   GPMF_ERR ret = GPMF_OK;
