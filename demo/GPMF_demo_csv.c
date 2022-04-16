@@ -83,15 +83,16 @@ int main(int argc, char *argv[])
 {
   // get file dir
   char *filepath_ptr = argv[1];
-  char filedir[1024] = {'\0'};
-  getFileDir(filepath_ptr, &filedir);
-  // printf("%s\n", filedir);
+  char *outfilepath = argv[2];
+  // char filedir[1024] = {'\0'};
+  // getFileDir(filepath_ptr, &filedir);
+  // // printf("%s\n", filedir);
 
-  // prepare for output
-  char outfilepath[1024] = {'\0'};
-  strcat(outfilepath, filedir);
-  strcat(outfilepath, "csv/gpmf_out.csv");
-  FILE *fp = fopen(&outfilepath, "w");
+  // // prepare for output
+  // char outfilepath[1024] = {'\0'};
+  // strcat(outfilepath, filedir);
+  // strcat(outfilepath, "csv/gpmf_out.csv");
+  FILE *fp = fopen(outfilepath, "w");
 
   GPMF_ERR ret = GPMF_OK;
   GPMF_stream metadata_stream, *ms = &metadata_stream;
