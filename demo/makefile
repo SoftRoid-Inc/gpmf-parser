@@ -11,13 +11,20 @@ endif
 # gpmfdemo : GPMF_demo.o GPMF_parser.o GPMF_utils.o GPMF_mp4reader.o GPMF_print.o
 # 		gcc -o gpmfdemo GPMF_demo.o GPMF_parser.o GPMF_utils.o GPMF_mp4reader.o GPMF_print.o $(ASAN_FLAGS)
 
+all: gpmfdemo gpmfdemo_cori
+
 gpmfdemo : GPMF_demo_csv.o GPMF_parser.o GPMF_utils.o GPMF_mp4reader.o GPMF_print.o
 		gcc -o gpmfdemo GPMF_demo_csv.o GPMF_parser.o GPMF_utils.o GPMF_mp4reader.o GPMF_print.o $(ASAN_FLAGS)
+
+gpmfdemo_cori : GPMF_demo_csv_cori.o GPMF_parser.o GPMF_utils.o GPMF_mp4reader.o GPMF_print.o
+		gcc -o gpmfdemo_cori GPMF_demo_csv_cori.o GPMF_parser.o GPMF_utils.o GPMF_mp4reader.o GPMF_print.o $(ASAN_FLAGS)
 
 # GPMF_demo.o : GPMF_demo.c
 # 		gcc -g -c GPMF_demo.c
 GPMF_demo_csv.o : GPMF_demo_csv.c
 		gcc -g -c GPMF_demo_csv.c
+GPMF_demo_csv_cori.o : GPMF_demo_csv_cori.c
+		gcc -g -c GPMF_demo_csv_cori.c
 GPMF_mp4reader.o : GPMF_mp4reader.c ../GPMF_parser.h
 		gcc -g -c GPMF_mp4reader.c
 GPMF_print.o : GPMF_print.c ../GPMF_parser.h
