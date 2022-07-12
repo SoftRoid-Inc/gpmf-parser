@@ -205,6 +205,8 @@ int main(int argc, char *argv[])
 				if (show_gpmf_structure || show_payload_index || show_scaled_data)
 					if (show_all_payloads || index == 0)
 						printf("PAYLOAD TIME:\n	%.3f to %.3f seconds\n", in, out);
+            fprintf(fp, "%.3f,", in);
+            fprintf(fp, "%.3f,", out);
 
 			if (show_gpmf_structure)
 			{
