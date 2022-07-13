@@ -23,20 +23,21 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 #include "../GPMF_parser.h"
 #include "GPMF_mp4reader.h"
 #include "../GPMF_utils.h"
 
 #define SHOW_VIDEO_FRAMERATE 0
-#define SHOW_PAYLOAD_TIME 0
+#define SHOW_PAYLOAD_TIME 1
 #define SHOW_ALL_PAYLOADS 1
 #define SHOW_GPMF_STRUCTURE 0
 #define SHOW_PAYLOAD_INDEX 0
 #define SHOW_SCALED_DATA 1
 // #define SHOW_THIS_FOUR_CC STR2FOURCC("CORI")
 #define SHOW_THIS_FOUR_CC STR2FOURCC("GRAV")
-#define SHOW_COMPUTED_SAMPLERATES 0
+#define SHOW_COMPUTED_SAMPLERATES 1
 
 extern void PrintGPMF(GPMF_stream *ms);
 
@@ -187,6 +188,8 @@ int main(int argc, char *argv[])
 		for (index = 0; index < payloads; index++)
 		{
 			double in = 0.0, out = 0.0; //times
+			double time_stamp = 0.0;
+			const double grav_rate = 29.97;
 			payloadsize = GetPayloadSize(mp4handle, index);
 			payloadres = GetPayloadResource(mp4handle, payloadres, payloadsize);
 			payload = GetPayload(mp4handle, payloadres, index);
@@ -201,12 +204,15 @@ int main(int argc, char *argv[])
 			if (ret != GPMF_OK)
 				goto cleanup;
 
-			if (show_payload_time)
-				if (show_gpmf_structure || show_payload_index || show_scaled_data)
-					if (show_all_payloads || index == 0)
-						printf("PAYLOAD TIME:\n	%.3f to %.3f seconds\n", in, out);
-            fprintf(fp, "%.3f,", in);
-            fprintf(fp, "%.3f,", out);
+			if (show_payload_time){
+				if (show_gpmf_structure || show_payload_index || show_scaled_data){
+					if (show_all_payloads || index == 0){
+						// printf("PAYLOAD TIME:\n	%.3f to %.3f seconds\n", in, out);
+						// fprintf(fp, "%.3f,", in);
+						// fprintf(fp, "%.3f,", out);
+					}
+				}
+			}
 
 			if (show_gpmf_structure)
 			{
@@ -405,6 +411,11 @@ int main(int argc, char *argv[])
 									int pos = 0;
 									for (i = 0; i < samples; i++)
 									{
+										// if (i!=0){
+										// 	fprintf(fp, ",,");
+										// }
+										time_stamp = in + i / grav_rate;
+										fprintf(fp, "%.3f,", time_stamp);
 										// printf("  %c%c%c%c ", PRINTF_4CC(key));
 
 										for (j = 0; j < elements; j++) // 例えばgravity vectorならx,y,zの３要素分for分が回る
@@ -415,9 +426,10 @@ int main(int argc, char *argv[])
 												pos++;
 												ptr++;
 											}
-											else if (type_samples == 0) //no TYPE structure
+											else if (type_samples == 0){ //no TYPE structure
 												// printf("%.3f%s, ", *ptr++, units[j % unit_samples]);
 												fprintf(fp, "%.5f,", *ptr++);
+												}
 											else if (complextype[j] != 'F')
 											{
 												printf("%.3f%s, ", *ptr++, units[j % unit_samples]);
@@ -430,7 +442,7 @@ int main(int argc, char *argv[])
 												pos += GPMF_SizeofType((GPMF_SampleType)complextype[j]);
 											}
 										}
-
+										fprintf(fp, "%d", i);
 										// printf("\n");
 										fprintf(fp, "\n");
 									}
@@ -467,6 +479,47 @@ int main(int argc, char *argv[])
 
 					double rate = GetGPMFSampleRate(cbobject, fourcc, STR2FOURCC("SHUT"), GPMF_SAMPLE_RATE_PRECISE, &start, &end); // GPMF_SAMPLE_RATE_FAST);
 					printf("	%c%c%c%c sampling rate = %fHz (time %f to %f)\",\n", PRINTF_4CC(fourcc), rate, start, end);
+					bool grav_flg;
+					char fourcc_str[4];
+					sprintf(fourcc_str, "%c%c%c%c", PRINTF_4CC(fourcc)); 
+					printf("%s,", fourcc_str);
+					printf("%d,", fourcc);
+					grav_flg = (fourcc_str == "GRAV");
+					printf("%d\n", grav_flg);
+					// 実行結果
+					// COMPUTED SAMPLERATES:
+					//         ACCL sampling rate = 197.374459Hz (time 0.000066 to 289.890665)",
+					// ACCL,1279476545,0
+					//         GYRO sampling rate = 789.497822Hz (time 0.000476 to 289.888546)",
+					// GYRO,1330796871,0
+					//         MAGN sampling rate = 24.671807Hz (time 0.008133 to 289.893667)",
+					// MAGN,1313292621,0
+					//         SHUT sampling rate = 29.970030Hz (time 0.000000 to 289.889600)",
+					// SHUT,1414875219,0
+					//         WBAL sampling rate = 9.990010Hz (time 0.000000 to 289.889600)",
+					// WBAL,1279345239,0
+					//         WRGB sampling rate = 9.990010Hz (time 0.000000 to 289.889600)",
+					// WRGB,1111970391,0
+					//         ISOE sampling rate = 29.970030Hz (time 0.000000 to 289.889600)",
+					// ISOE,1162826569,0
+					//         UNIF sampling rate = 9.990010Hz (time 0.000000 to 289.889600)",
+					// UNIF,1179209301,0
+					//         GPS5 sampling rate = 18.177142Hz (time -0.014934 to 289.909640)",
+					// GPS5,894652487,0
+					//         CORI sampling rate = 29.970030Hz (time 0.000000 to 289.889596)",
+					// CORI,1230131011,0
+					//         IORI sampling rate = 29.970030Hz (time 0.000000 to 289.889596)",
+					// IORI,1230131017,0
+					//         DISP sampling rate = 29.970030Hz (time 0.000000 to 289.889596)",
+					// DISP,1347635524,0
+					//         GRAV sampling rate = 29.970030Hz (time 0.000000 to 289.889596)",
+					// GRAV,1447121479,0
+					//         WNDM sampling rate = 10.000000Hz (time 0.000000 to 289.900000)",
+					// WNDM,1296322135,0
+					//         MWET sampling rate = 10.000000Hz (time 0.000000 to 289.900000)",
+					// MWET,1413830477,0
+					//         AALP sampling rate = 10.000000Hz (time 0.000000 to 289.900000)",
+					// AALP,1347174721,0
 				}
 			}
 		}

@@ -29,7 +29,7 @@
 #include "../GPMF_utils.h"
 
 #define SHOW_VIDEO_FRAMERATE 0
-#define SHOW_PAYLOAD_TIME 0
+#define SHOW_PAYLOAD_TIME 1
 #define SHOW_ALL_PAYLOADS 1
 #define SHOW_GPMF_STRUCTURE 0
 #define SHOW_PAYLOAD_INDEX 0
@@ -187,6 +187,8 @@ int main(int argc, char *argv[])
     for (index = 0; index < payloads; index++)
     {
       double in = 0.0, out = 0.0; //times
+			double time_stamp = 0.0;
+			const double grav_rate = 29.97;
       payloadsize = GetPayloadSize(mp4handle, index);
       payloadres = GetPayloadResource(mp4handle, payloadres, payloadsize);
       payload = GetPayload(mp4handle, payloadres, index);
@@ -201,10 +203,15 @@ int main(int argc, char *argv[])
       if (ret != GPMF_OK)
         goto cleanup;
 
-      if (show_payload_time)
-        if (show_gpmf_structure || show_payload_index || show_scaled_data)
-          if (show_all_payloads || index == 0)
-            printf("PAYLOAD TIME:\n  %.3f to %.3f seconds\n", in, out);
+			if (show_payload_time){
+				if (show_gpmf_structure || show_payload_index || show_scaled_data){
+					if (show_all_payloads || index == 0){
+						// printf("PAYLOAD TIME:\n	%.3f to %.3f seconds\n", in, out);
+						// fprintf(fp, "%.3f,", in);
+						// fprintf(fp, "%.3f,", out);
+					}
+				}
+			}
 
       if (show_gpmf_structure)
       {
@@ -403,6 +410,11 @@ int main(int argc, char *argv[])
                   int pos = 0;
                   for (i = 0; i < samples; i++)
                   {
+										// if (i!=0){
+										// 	fprintf(fp, ",,");
+										// }
+										time_stamp = in + i / grav_rate;
+										fprintf(fp, "%.3f,", time_stamp);
                     // printf("  %c%c%c%c ", PRINTF_4CC(key));
 
                     for (j = 0; j < elements; j++)
@@ -428,7 +440,7 @@ int main(int argc, char *argv[])
                         pos += GPMF_SizeofType((GPMF_SampleType)complextype[j]);
                       }
                     }
-
+										fprintf(fp, "%d", i);
                     // printf("\n");
                     fprintf(fp, "\n");
                   }
