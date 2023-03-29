@@ -241,6 +241,8 @@ size_t OpenMP4Source(char *filename, uint32_t traktype, uint32_t traksubtype, in
 		int32_t nest = 0;
 		uint64_t nestsize[MAX_NEST_LEVEL] = { 0 };
 		uint64_t lastsize = 0, qtsize;
+		uint64_t maxfilesize = 0;
+		uint32_t required_tags = 0;
 
 
 		do
@@ -248,6 +250,10 @@ size_t OpenMP4Source(char *filename, uint32_t traktype, uint32_t traksubtype, in
 			len = fread(&qtsize32, 1, 4, mp4->mediafp);
 			len += fread(&qttag, 1, 4, mp4->mediafp);
 			mp4->filepos += len;
+
+			if (maxfilesize && mp4->filepos >= maxfilesize) 
+				break;
+
 			if (len == 8 && mp4->filepos < mp4->filesize)
 			{
 				if (mp4->filepos == 8 && qttag != MAKEID('f', 't', 'y', 'p'))
@@ -257,7 +263,7 @@ size_t OpenMP4Source(char *filename, uint32_t traktype, uint32_t traksubtype, in
 					break;
 				}
 
-				if (!VALID_FOURCC(qttag) && (qttag & 0xff) != 0xa9) // �xyz and �swr are allowed
+				if (!VALID_FOURCC(qttag) && (qttag & 0xff) != 0xa9) // �xyz and �swr are allowed
 				{
 					CloseSource((size_t)mp4);
 					mp4 = NULL;
@@ -327,14 +333,28 @@ size_t OpenMP4Source(char *filename, uint32_t traktype, uint32_t traksubtype, in
 					qttag != MAKEID('h', 'd', 'l', 'r') &&
 					qttag != MAKEID('e', 'd', 't', 's'))
 				{
+
+					if (qttag == MAKEID('m', 'd', 'a', 't')) //mdat
+					{
+						required_tags++;
+						if(required_tags>=2)
+							maxfilesize = mp4->filepos + qtsize;
+					}
+
 					LongSeek(mp4, qtsize - 8);
 
 					NESTSIZE(qtsize);
 				}
 				else
 				{
-					
-					if (qttag == MAKEID('m', 'v', 'h', 'd')) //mvhd  movie header
+					if (qttag == MAKEID('m', 'o', 'o', 'v')) //moov
+					{
+						required_tags++;
+						if (required_tags >= 2)
+							maxfilesize = mp4->filepos + qtsize;
+						NESTSIZE(8);
+					}
+					else if (qttag == MAKEID('m', 'v', 'h', 'd')) //mvhd  movie header
 					{
 						len = fread(&skip, 1, 4, mp4->mediafp);
 						len += fread(&skip, 1, 4, mp4->mediafp);
@@ -417,8 +437,8 @@ size_t OpenMP4Source(char *filename, uint32_t traktype, uint32_t traksubtype, in
 								readnum = BYTESWAP32(readnum);
 								if (readnum <= (qtsize / 12) && mp4->trak_clockdemon)
 								{
-									uint32_t segment_duration; //integer that specifies the duration of this edit segment in units of the movies time scale.
-									uint32_t segment_mediaTime; //integer containing the starting time within the media of this edit segment(in media timescale units).If this field is set to 1, it is an empty edit.The last edit in a track should never be an empty edit.Any difference between the movies duration and the tracks duration is expressed as an implicit empty edit.
+									uint32_t segment_duration; //integer that specifies the duration of this edit segment in units of the movie�s time scale.
+									uint32_t segment_mediaTime; //integer containing the starting time within the media of this edit segment(in media timescale units).If this field is set to �1, it is an empty edit.The last edit in a track should never be an empty edit.Any difference between the movie�s duration and the track�s duration is expressed as an implicit empty edit.
 									uint32_t segment_mediaRate; //point number that specifies the relative rate at which to play the media corresponding to this edit segment.This rate value cannot be 0 or negative.
 									for (i = 0; i < readnum; i++)
 									{
@@ -892,7 +912,7 @@ size_t OpenMP4Source(char *filename, uint32_t traktype, uint32_t traksubtype, in
 
 									totaldur += duration;
 									mp4->metadatalength += (double)((double)samplecount * (double)duration / (double)mp4->meta_clockdemon);
-									if (samplecount > 1 || num == 1)
+									if (samplecount > 1 || num == 1 || mp4->basemetadataduration == 0.0)
 										mp4->basemetadataduration = mp4->metadatalength * (double)mp4->meta_clockdemon / (double)samples;
 								}
 							}
@@ -1104,11 +1124,19 @@ size_t OpenMP4SourceUDTA(char *filename, int32_t flags)
 		int32_t nest = 0;
 		uint64_t nestsize[MAX_NEST_LEVEL] = { 0 };
 		uint64_t lastsize = 0, qtsize;
+		uint64_t maxfilesize = 0;
+		uint32_t required_tags = 0;
+
 
 		do
 		{
 			len = fread(&qtsize32, 1, 4, mp4->mediafp);
 			len += fread(&qttag, 1, 4, mp4->mediafp);
+			mp4->filepos += len;
+			
+			if (maxfilesize && mp4->filepos >= maxfilesize)
+				break;
+
 			if (len == 8)
 			{
 				if (!VALID_FOURCC(qttag) && qttag != 0x7a7978a9)
@@ -1140,8 +1168,18 @@ size_t OpenMP4SourceUDTA(char *filename, int32_t flags)
 				nestsize[nest] = qtsize;
 				lastsize = qtsize;
 
-				if (qttag == MAKEID('m', 'd', 'a', 't') ||
-					qttag == MAKEID('f', 't', 'y', 'p'))
+				if (qttag == MAKEID('m', 'd', 'a', 't'))
+				{
+					required_tags++;
+					if (required_tags >= 2)
+						maxfilesize = mp4->filepos + qtsize;
+
+					LongSeek(mp4, qtsize - 8);
+					NESTSIZE(qtsize);
+					continue;
+				}
+
+				if(qttag == MAKEID('f', 't', 'y', 'p'))
 				{
 					LongSeek(mp4, qtsize - 8);
 					NESTSIZE(qtsize);
@@ -1176,6 +1214,12 @@ size_t OpenMP4SourceUDTA(char *filename, int32_t flags)
 				}
 				else
 				{
+					if (qttag == MAKEID('m', 'o', 'o', 'v')) //moov
+					{
+						required_tags++;
+						if (required_tags >= 2)
+							maxfilesize = mp4->filepos + qtsize;
+					}
 					NESTSIZE(8);
 				}
 			}
@@ -1183,4 +1227,3 @@ size_t OpenMP4SourceUDTA(char *filename, int32_t flags)
 	}
 	return (size_t)mp4;
 }
-
