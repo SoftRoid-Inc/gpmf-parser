@@ -56,6 +56,20 @@ docker run -v "/path/to/my/movie.mp4:/input.mp4" runsascoded/gpmf-parser
 
 Clone the project from Github (git clone https://github.com/gopro/gpmf-parser).
 
+Now you can run a quick demo on the sample data by compiling the demo:
+
+```bash
+cd gpmf-parser/demo/
+make
+./gpmfdemo ../samples/Fusion.mp4
+```
+
+This will return a brief overview of what metadata is stored in the given video file (Fusion.mp4). The following command will show the first few samples of the recorded payload (i.e. accelerometer, gyroscope, magnetometer, GPS, etc.):
+
+```bash
+./gpmfdemo ../samples/Fusion.mp4 -g
+```
+
 ### Sample Code
 
 GPMF-parser.c and .h provide a payload decoder for any raw stream stored in compliant GPMF. Extraction of the RAW GPMF from a video or image file is not covered by this tool.
@@ -566,10 +580,11 @@ For more information of GPSP (or DOP) see https://en.wikipedia.org/wiki/Dilution
 | SCEN | Scene classifier in probabilities | 8 - 10 | n/a | FourCC scenes: SNOW, URBAn, INDOor, WATR, VEGEtation, BEACh |
 | SROT | Sensor Read Out Time | at base frame rate 24/25/30  | n/a | this moves to a global value in HERO8 |
 
-### HERO8 Black (v1.2) Adds, Removes, Changes, Otherwise Supports All HERO7 metadata
+### HERO8 Black (v2.5) Adds, Removes, Changes, Otherwise Supports All HERO7 metadata
 
 | FourCC | Property | approximate frequency (Hz) | SIUN or UNIT | Comment |
 | --- | --- | --- | --- | --- |
+| FACE | Face boxes, confidence and smile | 8-10 | n/a | struct ID,x,y,w,h,confidence %,smile % |
 | CORI | Camera ORIentation | frame rate | n/a | Quaternions for the camera orientation since capture start |
 | IORI | Image ORIentation | frame rate | n/a | Quaternions for the image orientation relative to the camera body |
 | GRAV | GRAvity Vector | frame rate | n/a | Vector for the direction for gravitiy |
@@ -587,12 +602,27 @@ For more information of GPSP (or DOP) see https://en.wikipedia.org/wiki/Dilution
 | DISP | Disparity track (360 modes) | frame rate | n/a | 1-D depth map for the objects seen by the two lenses |
 | MAGN | MAGNnetometer | 24 | µT | Camera pointing direction x,y,z (valid in v2.0 firmware.) |
 
-### HERO9 Black (v1.5) Adds, Removes, Changes, Otherwise Supports All HERO8 metadata
+### HERO9 Changes, Otherwise Supports All HERO8 metadata
 
 | FourCC | Property | approximate frequency (Hz) | SIUN or UNIT | Comment |
 | --- | --- | --- | --- | --- |
 | MSKP | Main video frame SKiP | frame rate | n/a | GoPro internal usage. Number frames skips or duplicated from sensor image captured to encoded frame. Normally 0. This is used for visual effects when precision timing of the video frame is required. |
 | LSKP | Low res video frame SKiP | frame rate | n/a | GoPro internal usage. Same as MSKP for the LRV video file (when present.) This improves sync with the main video when using the LRV as a proxy. |
+
+### HERO10 changes, otherwise supports All HERO9 metadata
+
+| FourCC | Property | approximate frequency (Hz) | SIUN or UNIT | Comment |
+| --- | --- | --- | --- | --- |
+| FACE | version 4, confidence, ID, face boxes, smile and blink | at half base frame rate 12/12.5/15Hz | n/a | struct ver,confidence %,ID,x,y,w,h,smile %, blink % |
+
+### BONES is a HERO10, but has no GPS board, so GPS5 will be missing
+
+### HERO11 changes, otherwise supports All HERO10 metadata
+
+| FourCC | Property | approximate frequency (Hz) | SIUN or UNIT | Comment |
+| --- | --- | --- | --- | --- |
+| GPS5 | latitude, longitude, altitude, 2D ground speed, and 3D speed | 10 | deg, deg, m, m/s, m/s | unchanged but deprecated, might not be in future cameras |  
+| GPS9 | lat, long, alt, 2D speed, 3D speed, days since 2000, secs since midnight (ms precision), DOP, fix (0, 2D or 3D) | 10 | deg, deg, m, m/s, m/s,-,s,-,- | improved precision over GPS5 for time and fix information |
 
 ```
 GoPro is trademark of GoPro, Inc.
