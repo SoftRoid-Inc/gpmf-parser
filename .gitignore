@@ -37,3 +37,7 @@
 
 # vscode
 .vscode/
+
+# gmpfdemo
+demo/gpmfdemo
+demo/gpmfdemo_cori
